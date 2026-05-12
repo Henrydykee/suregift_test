@@ -1,3 +1,4 @@
+import 'package:suregift_test/core/data/cache/cache_service.dart';
 import 'package:suregift_test/core/data/network/network_service.dart';
 import 'package:suregift_test/core/di/di_config.dart';
 import 'package:suregift_test/features/cart/data/datasources/cart_remote_datasource.dart';
@@ -38,7 +39,7 @@ Future<void> cartInjector() async {
       updateItem: inject<UpdateCartItemUseCase>(),
       removeItem: inject<RemoveCartItemUseCase>(),
       getTotal: inject<GetCartTotalUseCase>(),
+      cache: inject<CacheService>(),
     ),
   );
 }
-

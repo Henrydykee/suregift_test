@@ -19,6 +19,8 @@ class SPref {
   static const USER_DATA = "user_data";
   static const KYC_DATA = "kyc_data";
   static const BIOMETRIC_SKIPPED = "biometric_skipped";
+  static const CACHE_CART = "cache_cart";
+  static const CACHE_CART_TOTALS = "cache_cart_totals";
   static const CACHE_PRODUCTS_LIST = "cache_products_list";
   static const CACHE_PRODUCT_DETAIL_PREFIX = "cache_product_detail_";
   static const CACHE_VOUCHERS_LIST = "cache_vouchers_list";

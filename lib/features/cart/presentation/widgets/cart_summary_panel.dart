@@ -10,8 +10,9 @@ class CartSummaryPanel extends StatelessWidget {
   final CartTotals? totals;
   final bool totalsLoading;
   final String? totalsError;
-  final Future<void> Function() onRetryTotals;
-  final VoidCallback onCheckout;
+  final Future<void> Function()? onRetryTotals;
+  final VoidCallback? onCheckout;
+  final String checkoutLabel;
 
   const CartSummaryPanel({
     super.key,
@@ -22,6 +23,7 @@ class CartSummaryPanel extends StatelessWidget {
     required this.totalsError,
     required this.onRetryTotals,
     required this.onCheckout,
+    this.checkoutLabel = 'Checkout',
   });
 
   @override
@@ -114,7 +116,7 @@ class CartSummaryPanel extends StatelessWidget {
             ],
             const SizedBox(height: 14),
             AppPrimaryButton(
-              label: 'Checkout',
+              label: checkoutLabel,
               icon: Icons.lock_outline_rounded,
               onPressed: onCheckout,
             ),

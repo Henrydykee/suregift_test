@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:suregift_test/core/data/cache/cache_service.dart';
+import 'package:suregift_test/core/platform/string_constants.dart';
 import 'package:suregift_test/features/cart/data/models/cart_item_model.dart';
 import 'package:suregift_test/features/cart/data/models/cart_model.dart';
 import 'package:suregift_test/features/cart/data/models/cart_totals_model.dart';
@@ -10,6 +12,7 @@ class CartProvider extends ChangeNotifier {
   final UpdateCartItemUseCase _updateItem;
   final RemoveCartItemUseCase _removeItem;
   final GetCartTotalUseCase _getTotal;
+  final CacheService _cache;
 
   CartProvider({
     required GetCartUseCase getCart,
@@ -17,11 +20,13 @@ class CartProvider extends ChangeNotifier {
     required UpdateCartItemUseCase updateItem,
     required RemoveCartItemUseCase removeItem,
     required GetCartTotalUseCase getTotal,
+    required CacheService cache,
   })  : _getCart = getCart,
         _addItem = addItem,
         _updateItem = updateItem,
         _removeItem = removeItem,
-        _getTotal = getTotal;
+        _getTotal = getTotal,
+        _cache = cache;
 
   Cart _cart = Cart.empty;
   Cart get cart => _cart;
@@ -34,6 +39,13 @@ class CartProvider extends ChangeNotifier {
 
   String? _error;
   String? get error => _error;
+
+  bool _showingCachedCart = false;
+  bool get showingCachedCart => _showingCachedCart;
+
+  String? get offlineNotice => _showingCachedCart
+      ? 'You are viewing your last saved cart. Reconnect to edit items or check out.'
+      : null;
 
   final Set<int> _busyItemIds = <int>{};
   bool isItemBusy(int id) => _busyItemIds.contains(id);
@@ -51,6 +63,9 @@ class CartProvider extends ChangeNotifier {
   Future<bool> loadCart({bool forceRefresh = false}) async {
     if (_loading) return false;
     if (_hasLoaded && !forceRefresh && _error == null) return true;
+    if (_cart.items.isEmpty) {
+      _restoreCachedCart();
+    }
     return _refetchCart();
   }
 
@@ -61,12 +76,27 @@ class CartProvider extends ChangeNotifier {
 
     final result = await _getCart();
     bool ok = false;
-    result.fold(
-      (err) => _error = err.message,
-      (data) {
+    await result.fold(
+      (err) async {
+        _error = err.message;
+        if (_cart.items.isNotEmpty) {
+          _showingCachedCart = true;
+        }
+        if (_cart.items.isEmpty) {
+          _restoreCachedCart(errorMessage: err.message);
+        }
+      },
+      (data) async {
         _cart = data;
         _hasLoaded = true;
+        _showingCachedCart = false;
+        _error = null;
         ok = true;
+        await _cache.writeObject<Cart>(
+          SPref.CACHE_CART,
+          data,
+          (cart) => cart.toJson(),
+        );
       },
     );
 
@@ -92,6 +122,8 @@ class CartProvider extends ChangeNotifier {
     required double amount,
     required int quantity,
   }) async {
+    final blockedMessage = _offlineMutationMessage();
+    if (blockedMessage != null) return blockedMessage;
     if (_addingItem) return 'Please wait…';
     _addingItem = true;
     notifyListeners();
@@ -113,12 +145,16 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<String?> setQuantity(CartItem item, int quantity) async {
+    final blockedMessage = _offlineMutationMessage();
+    if (blockedMessage != null) return blockedMessage;
     if (quantity < 1) return null;
     if (quantity == item.quantity) return null;
     return _updateLine(item, quantity: quantity);
   }
 
   Future<String?> setAmount(CartItem item, double amount) async {
+    final blockedMessage = _offlineMutationMessage();
+    if (blockedMessage != null) return blockedMessage;
     if (amount <= 0) return 'Enter a valid amount';
     return _updateLine(item, quantity: item.quantity, amount: amount);
   }
@@ -148,6 +184,8 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<String?> removeItem(CartItem item) async {
+    final blockedMessage = _offlineMutationMessage();
+    if (blockedMessage != null) return blockedMessage;
     _busyItemIds.add(item.id);
     notifyListeners();
 
@@ -164,6 +202,8 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<String?> clearCart() async {
+    final blockedMessage = _offlineMutationMessage();
+    if (blockedMessage != null) return blockedMessage;
     if (_cart.items.isEmpty) return null;
     _loading = true;
     notifyListeners();
@@ -182,6 +222,10 @@ class CartProvider extends ChangeNotifier {
   }
 
   Future<bool> loadTotals() async {
+    if (_showingCachedCart) {
+      _restoreCachedTotals();
+      return _totals != null;
+    }
     if (_totalsLoading) return false;
     _totalsLoading = true;
     _totalsError = null;
@@ -189,11 +233,20 @@ class CartProvider extends ChangeNotifier {
 
     bool ok = false;
     final result = await _getTotal();
-    result.fold(
-      (err) => _totalsError = err.message,
-      (data) {
+    await result.fold(
+      (err) async {
+        _totalsError = err.message;
+        if (_totals == null) _restoreCachedTotals(errorMessage: err.message);
+      },
+      (data) async {
         _totals = data;
+        _totalsError = null;
         ok = true;
+        await _cache.writeObject<CartTotals>(
+          SPref.CACHE_CART_TOTALS,
+          data,
+          (totals) => totals.toJson(),
+        );
       },
     );
 
@@ -208,5 +261,32 @@ class CartProvider extends ChangeNotifier {
     _totalsError = null;
     notifyListeners();
   }
-}
 
+  String? _offlineMutationMessage() {
+    if (!_showingCachedCart) return null;
+    return 'Cart changes are unavailable offline. Reconnect and try again.';
+  }
+
+  void _restoreCachedCart({String? errorMessage}) {
+    final cached = _cache.readObject<Cart>(SPref.CACHE_CART, Cart.fromJson);
+    if (cached == null || cached.items.isEmpty) return;
+    _cart = cached;
+    _hasLoaded = true;
+    _showingCachedCart = true;
+    if (errorMessage != null) _error = errorMessage;
+    _restoreCachedTotals();
+  }
+
+  void _restoreCachedTotals({String? errorMessage}) {
+    final cached = _cache.readObject<CartTotals>(
+      SPref.CACHE_CART_TOTALS,
+      CartTotals.fromJson,
+    );
+    if (cached == null) {
+      if (errorMessage != null) _totalsError = errorMessage;
+      return;
+    }
+    _totals = cached;
+    _totalsError = errorMessage;
+  }
+}

@@ -6,6 +6,7 @@ import 'package:suregift_test/core/presentation/widgets/app_empty_state.dart';
 import 'package:suregift_test/core/presentation/widgets/app_error_state.dart';
 import 'package:suregift_test/core/presentation/widgets/app_primary_app_bar.dart';
 import 'package:suregift_test/core/presentation/widgets/app_shimmer.dart';
+import 'package:suregift_test/core/presentation/state/provider_state.dart';
 import 'package:suregift_test/features/cart/data/models/cart_item_model.dart';
 import 'package:suregift_test/features/cart/presentation/state/cart_provider.dart';
 import 'package:suregift_test/features/cart/presentation/widgets/cart_item_row.dart';
@@ -19,13 +20,26 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen> with ProviderState<void> {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CartProvider>().loadCart();
     });
+    subscribeToConnectionState(() {
+      if (!hasInternetConnection() || !mounted) return;
+      final provider = context.read<CartProvider>();
+      if (provider.showingCachedCart || provider.error != null) {
+        provider.loadCart(forceRefresh: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    cancelConnectionStateSubscription();
+    super.dispose();
   }
 
   Future<void> _refresh() =>
@@ -73,6 +87,12 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void _goToCheckout(CartProvider provider) {
+    if (provider.showingCachedCart) {
+      Fluttertoast.showToast(
+        msg: 'Reconnect before checking out this cart.',
+      );
+      return;
+    }
     if (provider.cart.items.isEmpty) {
       Fluttertoast.showToast(msg: 'Your cart is empty.');
       return;
@@ -93,7 +113,9 @@ class _CartScreenState extends State<CartScreen> {
             builder: (_, provider, __) {
               if (provider.cart.items.isEmpty) return const SizedBox.shrink();
               return TextButton(
-                onPressed: provider.loading ? null : _confirmClear,
+                onPressed: provider.loading || provider.showingCachedCart
+                    ? null
+                    : _confirmClear,
                 child: const Text('Clear'),
               );
             },
@@ -108,6 +130,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Widget _buildBody(BuildContext context, CartProvider provider) {
     final cart = provider.cart;
+    final isReadOnly = provider.showingCachedCart;
     final isFirstLoad = provider.loading && !provider.hasLoaded;
     if (isFirstLoad) {
       return const AppShimmerList(itemCount: 4, itemHeight: 140);
@@ -135,6 +158,20 @@ class _CartScreenState extends State<CartScreen> {
     return Column(
       children: [
         if (provider.loading) const LinearProgressIndicator(minHeight: 2),
+        if (provider.offlineNotice != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            color: AppColors.warningBg,
+            child: Text(
+              provider.offlineNotice!,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.warning,
+              ),
+            ),
+          ),
         Expanded(
           child: RefreshIndicator(
             onRefresh: _refresh,
@@ -147,7 +184,7 @@ class _CartScreenState extends State<CartScreen> {
                 final item = cart.items[index];
                 return CartItemRow(
                   item: item,
-                  busy: provider.isItemBusy(item.id),
+                  busy: isReadOnly || provider.isItemBusy(item.id),
                   onQuantityChanged: (q) =>
                       _onQuantityChanged(provider, item, q),
                   onRemove: () => _onRemove(provider, item),
@@ -162,8 +199,9 @@ class _CartScreenState extends State<CartScreen> {
           totals: provider.totals,
           totalsLoading: provider.totalsLoading,
           totalsError: provider.totalsError,
-          onRetryTotals: () => provider.loadTotals(),
-          onCheckout: () => _goToCheckout(provider),
+          onRetryTotals: isReadOnly ? null : () => provider.loadTotals(),
+          onCheckout: isReadOnly ? null : () => _goToCheckout(provider),
+          checkoutLabel: isReadOnly ? 'Reconnect to checkout' : 'Checkout',
         ),
       ],
     );

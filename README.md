@@ -9,12 +9,12 @@ Stack: Flutter (Dart `>=3.6.0 <4.0.0`), Provider + GetIt, Dio, `flutter_secure_s
 ## Features
 
 - **Auth** — email + password login backed by JWT access/refresh tokens. Refresh is single-flight; refresh failure clears storage and routes to login.
-- **Catalogue** — paginated gift-card listing with search, category chips, and a grid/list view toggle.
+- **Catalogue** — paginated gift-card listing with search, category chips, a grid/list view toggle, and cached results that stay visible during offline refresh attempts.
 - **Product detail** — fixed denominations or open amount with min/max validation, quantity stepper, floating "add to cart" bar that hides when the amount keyboard is open.
 - **Cart** — add/edit quantity, remove, clear, server-side totals (subtotal, fees, tax) with retry on failure.
 - **Checkout** — purchase flow with status-aware result screen (success, payment-successful-but-processing, pending, purchase failed, unknown).
 - **My Vouchers** — pinned search bar, voucher list, pull-to-refresh, modal voucher details (code, PIN, serial, redemption URL, terms).
-- **Polished UX** — shimmer skeletons, typed empty/error states, copy-to-clipboard with toast, snackbars on failure, currency formatting.
+- **Polished UX** — shimmer skeletons, typed empty/error states, cached-first loading for catalog/voucher data, copy-to-clipboard with toast, snackbars on failure, currency formatting.
 
 ---
 
@@ -163,7 +163,7 @@ Net result: the UI never sees a raw exception, and error messages are derived on
 Two distinct stores, chosen deliberately:
 
 - **`SecuredStorage`** (backed by `flutter_secure_storage`) — holds **tokens and only tokens**. Keys are typed in `SecureStorageStrings`. Tokens never go into SharedPreferences.
-- **`LocalStorageService`** (backed by `shared_preferences`) — holds the cached user profile and other non-secret state. Keys are typed in `SPref`. Serialised user data round-trips through `UserModel.toJson` / `fromJson`, so the stored shape must stay in sync with the model.
+- **`LocalStorageService`** (backed by `shared_preferences`) — holds the cached user profile and other non-secret state, including offline-friendly catalog/voucher snapshots. Keys are typed in `SPref`. Serialised user data round-trips through `UserModel.toJson` / `fromJson`, so the stored shape must stay in sync with the model.
 
 `InMemory` (`lib/core/data/memory/cache_helpers.dart`) is a process-lifetime singleton for transient session flags (`hasSession`, `requiresPin`, `username`, …). Registered as a `lazySingleton`. Cleared on sign-out alongside both stores.
 
@@ -205,6 +205,7 @@ Where the brief or API was silent, I made the following calls:
 
 - **Client-side search** on the vouchers screen — filters the already-loaded list (product name / product code / voucher code). No `?q=` parameter is sent to the API.
 - **Catalogue pagination** triggers when the scroll position is within 400px of the bottom; not configurable per-platform.
+- **Offline pull-to-refresh on the catalogue keeps the last successful list on screen**. A failed refresh reports the error without blanking previously cached products.
 - **Cart totals** are fetched server-side after every mutation and shown with their own loading/error state, separate from the cart-items state.
 - **Checkout result** screen polls only the response of the initial purchase call; there is no follow-up polling for `purchaseProcessing` / `paymentSuccessful` states. The user is invited back to the vouchers screen instead.
 
