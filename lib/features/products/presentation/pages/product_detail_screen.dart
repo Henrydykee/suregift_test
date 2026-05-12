@@ -6,7 +6,6 @@ import 'package:suregift_test/core/presentation/widgets/app_keyboard_done_access
 import 'package:suregift_test/core/presentation/widgets/app_primary_app_bar.dart';
 import 'package:suregift_test/core/utils/currency_format.dart';
 import 'package:suregift_test/core/utils/money_formatter.dart';
-import 'package:suregift_test/features/cart/presentation/pages/cart_screen.dart';
 import 'package:suregift_test/features/cart/presentation/state/cart_provider.dart';
 import 'package:suregift_test/features/products/data/models/product_model.dart';
 import 'package:suregift_test/features/products/presentation/state/products_provider.dart';
@@ -190,24 +189,11 @@ class _ProductDetailScaffoldState extends State<_ProductDetailScaffold> {
       Fluttertoast.showToast(msg: error, toastLength: Toast.LENGTH_LONG);
       return;
     }
-    _showAddedSnack(product, amount, qty);
-  }
-
-  void _showAddedSnack(Product product, double amount, int qty) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        behavior: SnackBarBehavior.floating,
-        content: Text(
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    Fluttertoast.showToast(
+      msg:
           'Added $qty × ${formatCurrency(amount, product.currency)} ${product.name}',
-        ),
-        action: SnackBarAction(
-          label: 'View cart',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const CartScreen()),
-          ),
-        ),
-      ));
+    );
   }
 
   @override
