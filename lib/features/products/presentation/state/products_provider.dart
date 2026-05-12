@@ -1,18 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:suregift_test/core/data/cache/cache_service.dart';
+import 'package:suregift_test/core/platform/string_constants.dart';
 import 'package:suregift_test/features/products/data/models/product_model.dart';
 import 'package:suregift_test/features/products/domain/usecases/product_usecases.dart';
 
 class ProductsProvider extends ChangeNotifier {
   final GetProductsUseCase _getProducts;
   final GetProductDetailUseCase _getProductDetail;
+  final CacheService _cache;
 
   static const int _pageSize = 50;
 
   ProductsProvider({
     required GetProductsUseCase getProducts,
     required GetProductDetailUseCase getProductDetail,
+    required CacheService cache,
   })  : _getProducts = getProducts,
-        _getProductDetail = getProductDetail;
+        _getProductDetail = getProductDetail,
+        _cache = cache;
 
   final List<Product> _products = <Product>[];
   List<Product> get products => List.unmodifiable(_products);
@@ -41,25 +46,45 @@ class ProductsProvider extends ChangeNotifier {
   String? _detailError;
   String? get detailError => _detailError;
 
+  String _detailCacheKey(String code) =>
+      '${SPref.CACHE_PRODUCT_DETAIL_PREFIX}$code';
+
   Future<void> loadFirstPage({bool forceRefresh = false}) async {
     if (_initialLoading) return;
     if (_hasLoadedList && !forceRefresh && _listError == null) return;
 
+    if (_products.isEmpty) {
+      final cached = _cache.readList<Product>(
+        SPref.CACHE_PRODUCTS_LIST,
+        Product.fromJson,
+      );
+      if (cached != null && cached.isNotEmpty) {
+        _products
+          ..clear()
+          ..addAll(cached);
+        _hasLoadedList = true;
+        notifyListeners();
+      }
+    }
+
     _initialLoading = true;
     _listError = null;
-    _hasReachedEnd = false;
-    if (forceRefresh) _products.clear();
     notifyListeners();
 
     final result = await _getProducts(limit: _pageSize, skip: 0);
-    result.fold(
-      (err) => _listError = err.message,
-      (page) {
+    await result.fold(
+      (err) async => _listError = err.message,
+      (page) async {
         _products
           ..clear()
           ..addAll(page);
         _hasReachedEnd = page.length < _pageSize;
         _hasLoadedList = true;
+        await _cache.writeList<Product>(
+          SPref.CACHE_PRODUCTS_LIST,
+          page,
+          (p) => p.toJson(),
+        );
       },
     );
 
@@ -81,7 +106,6 @@ class ProductsProvider extends ChangeNotifier {
         await _getProducts(limit: _pageSize, skip: _products.length);
     result.fold(
       (err) {
-
         _listError = err.message;
       },
       (page) {
@@ -107,7 +131,14 @@ class ProductsProvider extends ChangeNotifier {
   Future<void> openProduct(Product seed) async {
     _selected = seed;
     _detailError = null;
+
+    final cached = _cache.readObject<Product>(
+      _detailCacheKey(seed.code),
+      Product.fromJson,
+    );
+    if (cached != null) _selected = cached;
     notifyListeners();
+
     await _refetchDetail(seed.code);
   }
 
@@ -123,9 +154,16 @@ class ProductsProvider extends ChangeNotifier {
     notifyListeners();
 
     final result = await _getProductDetail(code);
-    result.fold(
-      (err) => _detailError = err.message,
-      (fresh) => _selected = fresh,
+    await result.fold(
+      (err) async => _detailError = err.message,
+      (fresh) async {
+        _selected = fresh;
+        await _cache.writeObject<Product>(
+          _detailCacheKey(code),
+          fresh,
+          (p) => p.toJson(),
+        );
+      },
     );
 
     _detailLoading = false;
@@ -138,4 +176,3 @@ class ProductsProvider extends ChangeNotifier {
     _detailLoading = false;
   }
 }
-

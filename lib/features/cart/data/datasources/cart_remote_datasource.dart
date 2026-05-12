@@ -11,7 +11,7 @@ class CartRemoteDataSource {
 
   Future<Cart> getCart() async {
     final response = await _networkService.get(CartEndpoints.cart);
-    return Cart.fromJson(_asMap(handleNetworkResponse(response)));
+    return Cart.parse(_asMap(handleNetworkResponse(response)));
   }
 
   Future<void> addItem({
@@ -54,7 +54,7 @@ class CartRemoteDataSource {
 
   Future<CartTotals> getTotal() async {
     final response = await _networkService.get(CartEndpoints.total);
-    return CartTotals.fromJson(_asMap(handleNetworkResponse(response)));
+    return CartTotals.parse(_asMap(handleNetworkResponse(response)));
   }
 
   Map<String, dynamic> _asMap(dynamic data) {

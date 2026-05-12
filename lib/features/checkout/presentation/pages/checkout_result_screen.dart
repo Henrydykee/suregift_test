@@ -65,7 +65,7 @@ class _CheckoutResultViewState extends State<_CheckoutResultView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const AppPrimaryAppBar(title: 'Checkout'),
+      appBar: const AppPrimaryAppBar(title: 'Checkout',),
       body: Consumer<CheckoutProvider>(
         builder: (context, provider, _) {
           if (provider.loading) return const CheckoutLoadingState();

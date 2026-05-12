@@ -1,35 +1,31 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:suregift_test/features/products/data/models/product_validity.dart';
 
-class Product {
-  final String code;
-  final String name;
-  final String? imageUrl;
-  final String description;
-  final String currency;
-  final double minValue;
-  final double maxValue;
-  final List<double> denominations;
-  final List<String> redemptionDetails;
-  final List<String> countries;
-  final List<String> stores;
-  final List<String> categories;
-  final ProductValidity? validity;
+part 'product_model.freezed.dart';
+part 'product_model.g.dart';
 
-  const Product({
-    required this.code,
-    required this.name,
-    required this.description,
-    required this.currency,
-    required this.minValue,
-    required this.maxValue,
-    required this.denominations,
-    required this.redemptionDetails,
-    required this.countries,
-    required this.stores,
-    required this.categories,
-    this.imageUrl,
-    this.validity,
-  });
+@freezed
+class Product with _$Product {
+  const Product._();
+
+  const factory Product({
+    @Default('') String code,
+    @Default('') String name,
+    String? imageUrl,
+    @Default('') String description,
+    @Default('') String currency,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double minValue,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double maxValue,
+    @JsonKey(fromJson: _doubleList) @Default(<double>[]) List<double> denominations,
+    @JsonKey(fromJson: _stringList) @Default(<String>[]) List<String> redemptionDetails,
+    @JsonKey(fromJson: _stringList) @Default(<String>[]) List<String> countries,
+    @JsonKey(fromJson: _stringList) @Default(<String>[]) List<String> stores,
+    @JsonKey(fromJson: _stringList) @Default(<String>[]) List<String> categories,
+    ProductValidity? validity,
+  }) = _Product;
+
+  factory Product.fromJson(Map<String, dynamic> json) =>
+      _$ProductFromJson(json);
 
   bool get isOpenAmount => denominations.isEmpty;
 
@@ -40,37 +36,17 @@ class Product {
   }
 
   String? get primaryCountry => countries.isEmpty ? null : countries.first;
-  String? get primaryCategory => categories.isEmpty ? null : categories.first;
 
-  factory Product.fromJson(Map<String, dynamic> json) {
-    final validityRaw = json['validity'];
-    return Product(
-      code: json['code']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      imageUrl: json['imageUrl']?.toString(),
-      description: json['description']?.toString() ?? '',
-      currency: json['currency']?.toString() ?? '',
-      minValue: _asDouble(json['minValue']),
-      maxValue: _asDouble(json['maxValue']),
-      denominations: _asDoubleList(json['denominations']),
-      redemptionDetails: _asStringList(json['redemptionDetails']),
-      countries: _asStringList(json['countries']),
-      stores: _asStringList(json['stores']),
-      categories: _asStringList(json['categories']),
-      validity: validityRaw is Map<String, dynamic>
-          ? ProductValidity.fromJson(validityRaw)
-          : null,
-    );
-  }
+  String? get primaryCategory => categories.isEmpty ? null : categories.first;
 }
 
-double _asDouble(dynamic raw) {
+double _doubleFromAny(Object? raw) {
   if (raw is num) return raw.toDouble();
   return double.tryParse(raw?.toString() ?? '') ?? 0.0;
 }
 
-List<double> _asDoubleList(dynamic raw) {
-  if (raw is! List) return const [];
+List<double> _doubleList(Object? raw) {
+  if (raw is! List) return const <double>[];
   final out = <double>[];
   for (final v in raw) {
     if (v is num) {
@@ -83,11 +59,10 @@ List<double> _asDoubleList(dynamic raw) {
   return out;
 }
 
-List<String> _asStringList(dynamic raw) {
-  if (raw is! List) return const [];
+List<String> _stringList(Object? raw) {
+  if (raw is! List) return const <String>[];
   return raw
       .map((v) => v?.toString() ?? '')
       .where((s) => s.isNotEmpty)
       .toList(growable: false);
 }
-

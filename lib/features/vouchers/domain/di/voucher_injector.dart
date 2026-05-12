@@ -1,3 +1,4 @@
+import 'package:suregift_test/core/data/cache/cache_service.dart';
 import 'package:suregift_test/core/data/network/network_service.dart';
 import 'package:suregift_test/core/di/di_config.dart';
 import 'package:suregift_test/features/vouchers/data/datasources/vouchers_remote_datasource.dart';
@@ -28,6 +29,7 @@ Future<void> voucherInjector() async {
     () => VouchersProvider(
       getVouchers: inject<GetVouchersUseCase>(),
       getVoucher: inject<GetVoucherDetailUseCase>(),
+      cache: inject<CacheService>(),
     ),
   );
 }

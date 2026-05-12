@@ -1,16 +1,21 @@
 import 'package:flutter/foundation.dart';
+import 'package:suregift_test/core/data/cache/cache_service.dart';
+import 'package:suregift_test/core/platform/string_constants.dart';
 import 'package:suregift_test/features/vouchers/data/models/voucher_model.dart';
 import 'package:suregift_test/features/vouchers/domain/usecases/voucher_usecases.dart';
 
 class VouchersProvider extends ChangeNotifier {
   final GetVouchersUseCase _getVouchers;
   final GetVoucherDetailUseCase _getVoucher;
+  final CacheService _cache;
 
   VouchersProvider({
     required GetVouchersUseCase getVouchers,
     required GetVoucherDetailUseCase getVoucher,
+    required CacheService cache,
   })  : _getVouchers = getVouchers,
-        _getVoucher = getVoucher;
+        _getVoucher = getVoucher,
+        _cache = cache;
 
   List<Voucher> _vouchers = const [];
   List<Voucher> get vouchers => _vouchers;
@@ -32,16 +37,31 @@ class VouchersProvider extends ChangeNotifier {
     if (_listLoading) return;
     if (_hasLoadedList && !forceRefresh && _listError == null) return;
 
+    if (_vouchers.isEmpty) {
+      final cached =
+          _cache.readList<Voucher>(SPref.CACHE_VOUCHERS_LIST, Voucher.fromJson);
+      if (cached != null && cached.isNotEmpty) {
+        _vouchers = cached;
+        _hasLoadedList = true;
+        notifyListeners();
+      }
+    }
+
     _listLoading = true;
     _listError = null;
     notifyListeners();
 
     final result = await _getVouchers();
-    result.fold(
-      (err) => _listError = err.message,
-      (data) {
+    await result.fold(
+      (err) async => _listError = err.message,
+      (data) async {
         _vouchers = data;
         _hasLoadedList = true;
+        await _cache.writeList<Voucher>(
+          SPref.CACHE_VOUCHERS_LIST,
+          data,
+          (v) => v.toJson(),
+        );
       },
     );
 
@@ -85,4 +105,3 @@ class VouchersProvider extends ChangeNotifier {
     _detailLoading = false;
   }
 }
-

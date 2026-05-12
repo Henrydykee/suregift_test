@@ -12,7 +12,7 @@ class CheckoutRemoteDataSource {
     final response = await _networkService.post(CheckoutEndpoints.checkout);
     final data = handleNetworkResponse(response);
     final json = _asMap(data);
-    return CheckoutResult.fromJson(json);
+    return CheckoutResult.parse(json);
   }
 
   Map<String, dynamic> _asMap(dynamic data) {

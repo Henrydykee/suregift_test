@@ -1,15 +1,21 @@
-class UserModel {
-  final int id;
-  final String email;
-  final String firstName;
-  final String lastName;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const UserModel({
-    required this.id,
-    required this.email,
-    required this.firstName,
-    required this.lastName,
-  });
+part 'user_model.freezed.dart';
+part 'user_model.g.dart';
+
+@freezed
+class UserModel with _$UserModel {
+  const UserModel._();
+
+  const factory UserModel({
+    @JsonKey(fromJson: _intFromAny) @Default(0) int id,
+    @Default('') String email,
+    @Default('') String firstName,
+    @Default('') String lastName,
+  }) = _UserModel;
+
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
 
   String get fullName {
     final parts = [firstName, lastName].where((p) => p.isNotEmpty).toList();
@@ -23,21 +29,9 @@ class UserModel {
     if (combined.isNotEmpty) return combined;
     return email.isNotEmpty ? email[0].toUpperCase() : '?';
   }
-
-  factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      email: json['email']?.toString() ?? '',
-      firstName: json['firstName']?.toString() ?? '',
-      lastName: json['lastName']?.toString() ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'email': email,
-        'firstName': firstName,
-        'lastName': lastName,
-      };
 }
 
+int _intFromAny(Object? raw) {
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '') ?? 0;
+}

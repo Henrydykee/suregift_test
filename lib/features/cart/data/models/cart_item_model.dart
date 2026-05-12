@@ -1,49 +1,37 @@
-class CartItem {
-  final int id;
-  final String productCode;
-  final String productName;
-  final String? productImageUrl;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  final double unitPrice;
-  final String currency;
-  final int quantity;
-  final double subtotal;
+part 'cart_item_model.freezed.dart';
+part 'cart_item_model.g.dart';
 
-  const CartItem({
-    required this.id,
-    required this.productCode,
-    required this.productName,
-    required this.unitPrice,
-    required this.currency,
-    required this.quantity,
-    required this.subtotal,
-    this.productImageUrl,
-  });
+@freezed
+class CartItem with _$CartItem {
+  const factory CartItem({
+    @JsonKey(fromJson: _intFromAny) @Default(0) int id,
+    @Default('') String productCode,
+    @Default('') String productName,
+    @JsonKey(fromJson: _nonEmpty) String? productImageUrl,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double unitPrice,
+    @Default('') String currency,
+    @JsonKey(fromJson: _intFromAny) @Default(0) int quantity,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double subtotal,
+  }) = _CartItem;
 
-  factory CartItem.fromJson(Map<String, dynamic> json) {
-    final unit = _asDouble(json['unitPrice']);
-    final qty = (json['quantity'] as num?)?.toInt() ?? 0;
-    return CartItem(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      productCode: json['productCode']?.toString() ?? '',
-      productName: json['productName']?.toString() ?? '',
-      productImageUrl: _nonEmpty(json['productImageUrl']),
-      unitPrice: unit,
-      currency: json['currency']?.toString() ?? '',
-      quantity: qty,
-      subtotal: _asDouble(json['subtotal'], fallback: unit * qty),
-    );
-  }
+  factory CartItem.fromJson(Map<String, dynamic> json) =>
+      _$CartItemFromJson(json);
 }
 
-double _asDouble(dynamic raw, {double fallback = 0.0}) {
+double _doubleFromAny(Object? raw) {
   if (raw is num) return raw.toDouble();
-  return double.tryParse(raw?.toString() ?? '') ?? fallback;
+  return double.tryParse(raw?.toString() ?? '') ?? 0.0;
 }
 
-String? _nonEmpty(dynamic raw) {
+int _intFromAny(Object? raw) {
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
+String? _nonEmpty(Object? raw) {
   final s = raw?.toString();
   if (s == null || s.isEmpty) return null;
   return s;
 }
-

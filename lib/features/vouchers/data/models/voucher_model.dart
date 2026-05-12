@@ -1,44 +1,36 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'voucher_model.freezed.dart';
+part 'voucher_model.g.dart';
+
 enum VoucherStatus { active, expired, unknown }
 
-class Voucher {
-  final int id;
-  final int? orderId;
-  final String productCode;
-  final String productName;
-  final String? productImageUrl;
-  final double amount;
-  final String currency;
-  final String? voucherCode;
-  final String? pin;
-  final String? serialNumber;
-  final DateTime? expiryDate;
-  final String? suregiftsVoucherId;
-  final String? suregiftsOrderId;
-  final DateTime? createdAtUtc;
+@freezed
+class Voucher with _$Voucher {
+  const Voucher._();
 
-  final String? redemptionUrl;
-  final String? redemptionInstructions;
-  final String? termsAndConditions;
+  const factory Voucher({
+    @JsonKey(fromJson: _intFromAny) @Default(0) int id,
+    @JsonKey(fromJson: _intOrNull) int? orderId,
+    @Default('') String productCode,
+    @Default('') String productName,
+    String? productImageUrl,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double amount,
+    @Default('NGN') String currency,
+    String? voucherCode,
+    String? pin,
+    String? serialNumber,
+    @JsonKey(fromJson: _dateFromAny, toJson: _dateToJson) DateTime? expiryDate,
+    String? suregiftsVoucherId,
+    String? suregiftsOrderId,
+    @JsonKey(fromJson: _dateFromAny, toJson: _dateToJson) DateTime? createdAtUtc,
+    String? redemptionUrl,
+    String? redemptionInstructions,
+    String? termsAndConditions,
+  }) = _Voucher;
 
-  const Voucher({
-    required this.id,
-    required this.productCode,
-    required this.productName,
-    required this.amount,
-    required this.currency,
-    this.orderId,
-    this.productImageUrl,
-    this.voucherCode,
-    this.pin,
-    this.serialNumber,
-    this.expiryDate,
-    this.suregiftsVoucherId,
-    this.suregiftsOrderId,
-    this.createdAtUtc,
-    this.redemptionUrl,
-    this.redemptionInstructions,
-    this.termsAndConditions,
-  });
+  factory Voucher.fromJson(Map<String, dynamic> json) =>
+      _$VoucherFromJson(json);
 
   VoucherStatus get status {
     final expiry = expiryDate;
@@ -48,38 +40,13 @@ class Voucher {
         : VoucherStatus.active;
   }
 
-  factory Voucher.fromJson(Map<String, dynamic> json) {
-    final amountRaw = json['amount'];
-    final amount = amountRaw is num
-        ? amountRaw.toDouble()
-        : double.tryParse(amountRaw?.toString() ?? '') ?? 0.0;
-
-    return Voucher(
-      id: (json['id'] as num).toInt(),
-      orderId: (json['orderId'] as num?)?.toInt(),
-      productCode: json['productCode']?.toString() ?? '',
-      productName: json['productName']?.toString() ?? '',
-      productImageUrl: json['productImageUrl']?.toString(),
-      amount: amount,
-      currency: json['currency']?.toString() ?? 'NGN',
-      voucherCode: json['voucherCode']?.toString(),
-      pin: json['pin']?.toString(),
-      serialNumber: json['serialNumber']?.toString(),
-      expiryDate: _parseDate(json['expiryDate']),
-      suregiftsVoucherId: json['suregiftsVoucherId']?.toString(),
-      suregiftsOrderId: json['suregiftsOrderId']?.toString(),
-      createdAtUtc: _parseDate(json['createdAtUtc']),
-      redemptionUrl: json['redemptionUrl']?.toString(),
-      redemptionInstructions: json['redemptionInstructions']?.toString(),
-      termsAndConditions: json['termsAndConditions']?.toString(),
-    );
-  }
-
-  Voucher mergedWith(Voucher other) => Voucher(
+  Voucher mergedWith(Voucher other) => copyWith(
         id: other.id,
         orderId: other.orderId ?? orderId,
-        productCode: other.productCode.isNotEmpty ? other.productCode : productCode,
-        productName: other.productName.isNotEmpty ? other.productName : productName,
+        productCode:
+            other.productCode.isNotEmpty ? other.productCode : productCode,
+        productName:
+            other.productName.isNotEmpty ? other.productName : productName,
         productImageUrl: other.productImageUrl ?? productImageUrl,
         amount: other.amount,
         currency: other.currency,
@@ -97,10 +64,27 @@ class Voucher {
       );
 }
 
-DateTime? _parseDate(dynamic raw) {
+int _intFromAny(Object? raw) {
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw?.toString() ?? '') ?? 0;
+}
+
+int? _intOrNull(Object? raw) {
+  if (raw == null) return null;
+  if (raw is num) return raw.toInt();
+  return int.tryParse(raw.toString());
+}
+
+double _doubleFromAny(Object? raw) {
+  if (raw is num) return raw.toDouble();
+  return double.tryParse(raw?.toString() ?? '') ?? 0.0;
+}
+
+DateTime? _dateFromAny(Object? raw) {
   if (raw == null) return null;
   final str = raw.toString();
   if (str.isEmpty) return null;
   return DateTime.tryParse(str);
 }
 
+String? _dateToJson(DateTime? d) => d?.toIso8601String();

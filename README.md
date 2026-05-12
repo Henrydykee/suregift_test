@@ -30,6 +30,10 @@ Stack: Flutter (Dart `>=3.6.0 <4.0.0`), Provider + GetIt, Dio, `flutter_secure_s
 | :--: | :---------: | :---------------------: |
 | ![Cart](docs/screenshots/04-cart.png) | ![Vouchers](docs/screenshots/05-vouchers.png) | ![Voucher details](docs/screenshots/06-voucher-detail.png) |
 
+| Login (Android) | Login (focused, keyboard up) | Catalog (list view) | Checkout success |
+| :-------------: | :--------------------------: | :-----------------: | :--------------: |
+| ![Login Android](docs/screenshots/07-login-empty.png) | ![Login focused](docs/screenshots/08-login-focus.png) | ![Catalog list](docs/screenshots/09-catalog-list.png) | ![Checkout success](docs/screenshots/10-checkout-success.png) |
+
 ---
 
 ## Setup
@@ -71,8 +75,6 @@ flutter analyze
 # Tests
 flutter test
 
-# iOS: if Pods get into a bad state (architecture mismatches, stale caches)
-./clear_pods.sh
 ```
 
 ---

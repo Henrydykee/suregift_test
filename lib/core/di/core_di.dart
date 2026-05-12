@@ -1,5 +1,6 @@
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/cache/cache_service.dart';
 import '../data/memory/cache_helpers.dart';
 import '../data/network/network_config.dart';
 import '../data/network/network_interceptor.dart';
@@ -14,6 +15,9 @@ Future<void> coreInjector() async {
   inject.registerSingleton<SecuredStorage>(SecuredStorageImpl());
   inject.registerSingleton<SharedPreferences>(await SharedPreferences.getInstance());
   inject.registerSingleton<LocalStorageService>(await LocalStorageService.getInstance());
+  inject.registerLazySingleton<CacheService>(
+    () => CacheService(inject<LocalStorageService>()),
+  );
  // inject.registerSingleton<DeviceManager>(DeviceManager.instance);
   inject.registerSingleton<DeviceInfoPlugin>(DeviceInfoPlugin());
   inject.registerFactory<NetworkInterceptor>(() => NetworkInterceptor(networkConfigInterface: inject(), deviceInfo:  inject()));

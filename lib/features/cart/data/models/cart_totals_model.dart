@@ -1,43 +1,47 @@
-class CartTotals {
-  final double subtotal;
-  final double? fees;
-  final double? tax;
-  final double total;
-  final String currency;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  const CartTotals({
-    required this.subtotal,
-    required this.total,
-    required this.currency,
-    this.fees,
-    this.tax,
-  });
+part 'cart_totals_model.freezed.dart';
+part 'cart_totals_model.g.dart';
 
-  factory CartTotals.fromJson(Map<String, dynamic> json) {
-    final subtotal = _asDouble(json['subtotal']);
-    final fees = _asDoubleOrNull(json['fees'] ?? json['fee']);
-    final tax = _asDoubleOrNull(json['tax']);
-    final total = _asDoubleOrNull(json['total']) ??
-        (subtotal + (fees ?? 0) + (tax ?? 0));
+@freezed
+class CartTotals with _$CartTotals {
+  const CartTotals._();
 
-    return CartTotals(
-      subtotal: subtotal,
-      fees: fees,
-      tax: tax,
-      total: total,
-      currency: json['currency']?.toString() ?? '',
-    );
+  const factory CartTotals({
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double subtotal,
+    @JsonKey(fromJson: _doubleOrNull) double? fees,
+    @JsonKey(fromJson: _doubleOrNull) double? tax,
+    @JsonKey(fromJson: _doubleFromAny) @Default(0.0) double total,
+    @Default('') String currency,
+  }) = _CartTotals;
+
+  factory CartTotals.fromJson(Map<String, dynamic> json) =>
+      _$CartTotalsFromJson(json);
+
+  static CartTotals parse(Map<String, dynamic> json) {
+    final base = CartTotals.fromJson(json);
+    final fallbackFees = base.fees ?? _doubleOrNull(json['fee']);
+    final rawTotal = json['total'];
+    final hasTotal = (rawTotal is num) ||
+        (double.tryParse(rawTotal?.toString() ?? '') != null);
+    final computedTotal = hasTotal
+        ? base.total
+        : base.subtotal + (fallbackFees ?? 0) + (base.tax ?? 0);
+
+    if (fallbackFees == base.fees && computedTotal == base.total) {
+      return base;
+    }
+    return base.copyWith(fees: fallbackFees, total: computedTotal);
   }
 }
 
-double _asDouble(dynamic raw) {
+double _doubleFromAny(Object? raw) {
   if (raw is num) return raw.toDouble();
   return double.tryParse(raw?.toString() ?? '') ?? 0.0;
 }
 
-double? _asDoubleOrNull(dynamic raw) {
+double? _doubleOrNull(Object? raw) {
   if (raw == null) return null;
   if (raw is num) return raw.toDouble();
   return double.tryParse(raw.toString());
 }
-
