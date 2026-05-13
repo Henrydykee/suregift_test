@@ -35,12 +35,15 @@ class VoucherCard extends StatelessWidget {
                   width: 92,
                   color: AppColors.surfaceMuted,
                   alignment: Alignment.center,
-                  child: AppNetworkImage(
-                    url: voucher.productImageUrl,
-                    width: 64,
-                    height: 64,
-                    borderRadius: BorderRadius.circular(10),
-                    placeholderIconSize: 28,
+                  child: Hero(
+                    tag: 'voucher_image_${voucher.id}',
+                    child: AppNetworkImage(
+                      url: voucher.productImageUrl,
+                      width: 64,
+                      height: 64,
+                      borderRadius: BorderRadius.circular(10),
+                      placeholderIconSize: 28,
+                    ),
                   ),
                 ),
                 _NotchDivider(),

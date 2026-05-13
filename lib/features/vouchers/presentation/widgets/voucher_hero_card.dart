@@ -101,12 +101,15 @@ class _ProductRow extends StatelessWidget {
               ),
             ],
           ),
-          child: AppNetworkImage(
-            url: voucher.productImageUrl,
-            width: 60,
-            height: 60,
-            borderRadius: BorderRadius.circular(10),
-            placeholderIconSize: 28,
+          child: Hero(
+            tag: 'voucher_image_${voucher.id}',
+            child: AppNetworkImage(
+              url: voucher.productImageUrl,
+              width: 60,
+              height: 60,
+              borderRadius: BorderRadius.circular(10),
+              placeholderIconSize: 28,
+            ),
           ),
         ),
         const SizedBox(width: 12),

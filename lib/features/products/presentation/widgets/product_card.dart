@@ -36,12 +36,15 @@ class ProductCard extends StatelessWidget {
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 10,
-                child: AppNetworkImage(
-                  url: product.imageUrl,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(15),
+                child: Hero(
+                  tag: 'product_image_${product.code}',
+                  child: AppNetworkImage(
+                    url: product.imageUrl,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(15),
+                    ),
+                    placeholderIconSize: 32,
                   ),
-                  placeholderIconSize: 32,
                 ),
               ),
             ),
@@ -164,12 +167,15 @@ class ProductListTile extends StatelessWidget {
                   color: AppColors.surfaceMuted,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: AppNetworkImage(
-                  url: product.imageUrl,
-                  width: 72,
-                  height: 72,
-                  borderRadius: BorderRadius.circular(12),
-                  placeholderIconSize: 28,
+                child: Hero(
+                  tag: 'product_image_${product.code}',
+                  child: AppNetworkImage(
+                    url: product.imageUrl,
+                    width: 72,
+                    height: 72,
+                    borderRadius: BorderRadius.circular(12),
+                    placeholderIconSize: 28,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),

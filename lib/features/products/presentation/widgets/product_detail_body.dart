@@ -51,9 +51,12 @@ class ProductDetailBody extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             child: AspectRatio(
               aspectRatio: 16 / 9,
-              child: AppNetworkImage(
-                url: product.imageUrl,
-                placeholderIconSize: 48,
+              child: Hero(
+                tag: 'product_image_${product.code}',
+                child: AppNetworkImage(
+                  url: product.imageUrl,
+                  placeholderIconSize: 48,
+                ),
               ),
             ),
           ),
