@@ -49,17 +49,16 @@ Stack: Flutter (Dart `>=3.6.0 <4.0.0`), Provider + GetIt, Dio, `flutter_secure_s
 Copy the example below to a file named `.env` at the **project root** (next to `pubspec.yaml`). This file is listed in `.gitignore` and must **never** be committed.
 
 ```env
-# Base URL
 BASE_URL=https://assessment.suregifts.com.ng/
-
-# AES-256-CBC encryption credentials
-# ENCRYPTION_KEY must be exactly 32 characters
-# ENCRYPTION_IV  must be exactly 16 characters
-ENCRYPTION_KEY=your_32_char_encryption_key_here
-ENCRYPTION_IV=your_16_char_iv!!
+ENCRYPTION_KEY=gOMfZtqeD/CLI06pmoXefXAALLdyMoox2o9iJ0S0LZg=
+ENCRYPTION_IV=DhbPBabUx5wJ18LIa1pbQw==
 ```
 
-> **Important:** Replace the placeholder values with the real key and IV shared by your backend team. Mismatched lengths will cause a runtime exception.
+> ⚠️ **Assessment / review disclaimer**
+>
+> The `.env` values above (including the encryption key and IV) are exposed here **solely to make this assessment easy to run without extra setup steps**.
+> In a real production application you must **never** commit secrets to version control or include them in a README.
+> Credentials should be distributed through a secure secrets-management system (e.g. environment variables injected at CI/CD time, a secrets vault, or a per-developer `.env` that is git-ignored and shared out-of-band).
 
 ### 2. Install dependencies
 
