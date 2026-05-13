@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'core/data/enums/type_enums.dart';
 import 'core/di/di_config.dart';
@@ -12,10 +13,19 @@ import 'features/splash/presentation/pages/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables from .env before anything else.
+  await dotenv.load(fileName: '.env');
+
   EnvConfig(
     flavor: Env.STAGING,
-    values: EnvVar(baseUrl: STAGING_BASE_URL),
+    values: EnvVar(
+      baseUrl: dotenv.env['BASE_URL'] ?? STAGING_BASE_URL,
+      encryptionKey: dotenv.env['ENCRYPTION_KEY'] ?? '',
+      encryptionIv: dotenv.env['ENCRYPTION_IV'] ?? '',
+    ),
   );
+
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   await initInjectors();
   runApp(const VoucherHub());

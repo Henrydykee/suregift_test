@@ -7,15 +7,16 @@ import '../../di/di_config.dart';
 import '../../managers/local_storage_service.dart';
 import '../../platform/storage/secured_storage.dart';
 import '../../platform/string_constants.dart';
+import '../../utils/encryption_utils.dart';
 import '../../utils/router.dart';
 import 'network_config.dart';
 
 /// Can be registered with [NetworkService].
 ///
-/// Attaches the bearer token to every request except [skipToken] paths,
-/// and on a 401 wipes local state and forces a return to the login screen.
-/// The VoucherHub assessment API issues a JWT without a refresh token, so
-/// there is no silent-refresh path here — 401 means re-login.
+/// Attaches the bearer token to every request except [skipToken] paths.
+/// The stored token is AES-encrypted at rest; it is decrypted here before
+/// being placed in the Authorization header.
+/// On a 401 the local state is wiped and the user is sent to the login screen.
 class NetworkInterceptor extends InterceptorsWrapper {
   NetworkConfig? networkConfigInterface;
   DeviceInfoPlugin? deviceInfo;
@@ -31,10 +32,17 @@ class NetworkInterceptor extends InterceptorsWrapper {
     print("➡️ Body: ${options.data}");
 
     if (!skipToken(options.path)) {
-      final authToken =
+      final raw =
           await inject<SecuredStorage>().get(key: SecureStorageStrings.TOKEN);
-      if (authToken is String && authToken.isNotEmpty) {
-        options.headers['Authorization'] = 'Bearer $authToken';
+
+      if (raw is String && raw.isNotEmpty) {
+        try {
+          // Decrypt the stored token before attaching it to the request.
+          final token = EncryptionUtils.decrypt(raw);
+          options.headers['Authorization'] = 'Bearer $token';
+        } catch (e) {
+          print("⚠️ Token decryption failed: $e");
+        }
       }
     }
 

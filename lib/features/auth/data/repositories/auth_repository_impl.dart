@@ -1,6 +1,7 @@
 import 'package:suregift_test/core/managers/local_storage_service.dart';
 import 'package:suregift_test/core/platform/storage/secured_storage.dart';
 import 'package:suregift_test/core/platform/string_constants.dart';
+import 'package:suregift_test/core/utils/encryption_utils.dart';
 import 'package:suregift_test/features/auth/data/models/user_model.dart';
 import 'package:suregift_test/features/auth/domain/repositories/auth_repository.dart';
 import 'package:suregift_test/core/utils/data/guarded_datasource_calls.dart';
@@ -28,7 +29,11 @@ class AuthRepositoryImpl implements AuthRepository {
     if (token == null || token.isEmpty) {
       throw StateError('Login response missing accessToken');
     }
-    await securedStorage.add(key: SecureStorageStrings.TOKEN, value: token);
+
+    // Encrypt the token before persisting to secure storage.
+    final encryptedToken = EncryptionUtils.encrypt(token);
+    await securedStorage.add(
+        key: SecureStorageStrings.TOKEN, value: encryptedToken);
 
     final expiresAt = payload['expiresAtUtc'] as String?;
     if (expiresAt != null && expiresAt.isNotEmpty) {
@@ -62,8 +67,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> hasSession() async {
-    final token = await securedStorage.get(key: SecureStorageStrings.TOKEN);
-    return token is String && token.isNotEmpty;
+    final raw = await securedStorage.get(key: SecureStorageStrings.TOKEN);
+    if (raw is! String || raw.isEmpty) return false;
+    try {
+      // If decryption succeeds the stored token is valid.
+      final decrypted = EncryptionUtils.decrypt(raw);
+      return decrypted.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 }
-
